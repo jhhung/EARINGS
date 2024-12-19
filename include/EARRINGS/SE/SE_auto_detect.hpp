@@ -41,10 +41,12 @@ template<class IFStream, class Tailor>
 std::vector<std::string> tailor_pipeline(IFStream&& ifs
                                        , size_t thread_num
                                        , Tailor&& tailor
-                                       , size_t num_reads) 
+                                       , size_t num_reads)
 {
     auto tp = nucleona::parallel::make_asio_pool(thread_num);
-    constexpr pipeline::range::format_reader_fn<EARRINGS::Fastq<false, std::string>> format_reader{};
+    constexpr pipeline::range::format_reader_fn<biovoltron::FastqRecord<>> format_reader{};
+
+    std::string name, seq;
 
     std::vector<std::string> tails;
     tails.reserve(num_reads);
@@ -53,12 +55,26 @@ std::vector<std::string> tailor_pipeline(IFStream&& ifs
         ifs
         | format_reader()
         | ranges::view::transform([&tailor](auto &&query) {
-            return is_fastq ? tailor.search(query) : tailor.search(Fastq(query));
-        })
-        | ranges::view::transform([&tails](auto &&alignment) {
-            if (alignment.tail_pos >= 0) {
-                tails.emplace_back(alignment.seq.substr(alignment.seq.length() - alignment.tail_pos - 1));
+            if (is_fastq) {
+                return tailor.search(query);
+            } else {
+                return tailor.search(biovoltron::FastqRecord<>{query.name, query.seq, std::string(query.seq.size(), 'I')});
             }
+        })
+        | ranges::view::transform([&tails, &name, &seq](auto &&alignment) {
+            if (alignment.tail_pos >= 0) {
+//                if (alignment.tail_pos >= alignment.seq.size()) {
+//                    std::cerr << "!!!!! Error: tail_pos (" << alignment.tail_pos << ") exceeds sequence length (" << alignment.seq.size() << ")\n";
+//                    std::cerr << "!!!!! " << alignment.name << " ! " << alignment.seq << " ! " << alignment.qual << " !\n";
+//                }
+                try {
+                    tails.emplace_back(alignment.seq.substr(alignment.seq.length() - alignment.tail_pos - 1));
+                } catch (const std::exception& e) {
+                    std::cout << "!!! " << name << " " << seq << "\n";
+                }
+            }
+            name = alignment.name;
+            seq = alignment.seq;
             return alignment;
         })
         | nucleona::range::endp;
@@ -75,7 +91,7 @@ std::pair<std::string, bool> seat_adapter_auto_detect(
                                     )
 {
     std::vector<std::string> tails;
-    biovoltron::Index<9> fm_index{12}, rc_fm_index{12};
+    biovoltron::Index fm_index{12}, rc_fm_index{12};
     std::ifstream fm_ifs{index_prefix + ".table"}, rc_fm_ifs{index_prefix + ".rc_table"};
     fm_index.load(fm_ifs);
     rc_fm_index.load(rc_fm_ifs);
