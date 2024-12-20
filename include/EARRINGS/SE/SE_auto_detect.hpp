@@ -62,17 +62,16 @@ std::vector<std::string> tailor_pipeline(IFStream&& ifs
             }
         })
         | ranges::view::transform([&tails, &name, &seq](auto &&alignment) {
+            std::cout << "?";
             if (alignment.tail_pos >= 0) {
-//                if (alignment.tail_pos >= alignment.seq.size()) {
-//                    std::cerr << "!!!!! Error: tail_pos (" << alignment.tail_pos << ") exceeds sequence length (" << alignment.seq.size() << ")\n";
-//                    std::cerr << "!!!!! " << alignment.name << " ! " << alignment.seq << " ! " << alignment.qual << " !\n";
-//                }
+                std::cout << "\b!";
                 try {
                     tails.emplace_back(alignment.seq.substr(alignment.seq.length() - alignment.tail_pos - 1));
                 } catch (const std::exception& e) {
-                    std::cout << "!!! " << name << " " << seq << "\n";
+//                    std::cout << "!!! " << name << " " << seq << "\n";
                 }
             }
+            std::cout << " " << alignment.name << " " << alignment.seq << " " << alignment.tail_pos << "\n";
             name = alignment.name;
             seq = alignment.seq;
             return alignment;
