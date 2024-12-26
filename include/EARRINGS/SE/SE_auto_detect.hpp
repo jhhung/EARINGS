@@ -71,7 +71,7 @@ std::vector<std::string> tailor_pipeline(IFStream&& ifs
 //                    std::cout << "!!! " << name << " " << seq << "\n";
                 }
             }
-            std::cout << " " << alignment.name << " " << alignment.seq << " " << alignment.tail_pos << "\n";
+            std::cout << " " << alignment.name << " | " << alignment.seq << " | " << alignment.tail_pos << "\n";
             name = alignment.name;
             seq = alignment.seq;
             return alignment;
